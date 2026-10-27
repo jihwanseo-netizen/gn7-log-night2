@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8" />
 <script>
-/* RS4 야간2 전용: 다른 조 앱과 같은 도메인(github.io)을 쓰므로 브라우저 저장소 키 앞에 'night2:'를 붙여 서로 섞이지 않게 한다. */
+/* RS4 야간 전용: 다른 조 앱과 같은 도메인(github.io)을 쓰므로 브라우저 저장소 키 앞에 'night:'를 붙여 서로 섞이지 않게 한다. */
 (function(){
   try {
-    var P = 'night2:', S = Storage.prototype, g = S.getItem, st = S.setItem, r = S.removeItem;
+    var P = 'night:', S = Storage.prototype, g = S.getItem, st = S.setItem, r = S.removeItem;
     S.getItem = function(k){ return g.call(this, this === window.localStorage ? P + k : k); };
     S.setItem = function(k, v){ return st.call(this, this === window.localStorage ? P + k : k, v); };
     S.removeItem = function(k){ return r.call(this, this === window.localStorage ? P + k : k); };
   } catch(e){}
 })();
 </script>
-<title>RS4 야간2</title>
+<title>RS4 야간</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="RS4 야간2" />
+<meta name="apple-mobile-web-app-title" content="RS4 야간" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#1A1C1F" />
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAXTUlEQVR4nO2de5BcVZ3Hv+fc7nu7e/o10zN5kECQ6BKtJZZrWVooD10N5WaTVWYS8bHrPmATBzWRWFs+IOsCeYlYSUmyWiIhBktxBRPWXR8UEUyWRFeIlRAJqOy6IEiYR3f63u7bfe85Z/+43T2ThNv3nM6zM+dTUymomkf36U+f3+vc2+SC2XOg0bwa9Gw/AM25i5ZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE4qWQxOKlkMTipZDE0rsbD+ADjHOktVCQABCnJ2/fobpSjmEQNGh/Ey9QqT1HwQxQ8QNxAwR2CkEztjDOPN0mRyEwGckm+S3fWSkt4f7bNJLd6oRAj6D65FKjRYdOnrUOFIyjpSMF8di4zYtO1QImHGRiAuDnp+WdJkcAIKX5P1vs/v6BPzTKMerwGFXUarQF0Zih/9g/uo564nfWb95MV4qUysuUpYgBIyfwcdzmuk+OdAMK0mT1X2QMygHAQyK/iyf2Vt/6+vrHxV2uYLDL5i7DqR++MvUgd+bjJNMkhMCfl4o0pVyADBo4+tMygGAA9xH3YdwASBG8ea59bdcWr9xYWn3ocS2XZlHfpXyOTJJwUXX563dKsfZggAgjX8BCMCpQbgwqHjvm6vXvKn66FPJO7+f+9mhZDrJ40Z3Rxnd5zhZKGnU1UcrcFy8a371wc/9cf3fjsYNOC45WyX3KaGbH/s5hkFBKY5W4DHcuPjojs+/9CezvFKFxoyz/cg6RctxijEoCFAq4U1z6ztufunKN1THbWp0px9ajtNCzMBRB309/L5PH7n6skrJ6cr9Q8txuogZqNaRNPk3PvnKZXNqdrX78o9ue7xdhUHh1lDI8C3LX8mkhMfIGS68TxItx+nFMFCuYP5rvc8OjTkuoVqOcxzGI744R9DCOiVNrJgB28ZH/7x8xRuq5Sqh3bPkU64JRgl6UtHfxgUYg8fgMwCg9KRmOFwgEccnFxX3PTuji9qmU0sOSmC7ZO8zVvtX2qAiYYreNJ+e97MpgKDqwmOdHyIxKOwqrp7vXn6pu+fpRCYpuqJzOoXk4AJJE4eej79vzYz2LzMlMOMinRD9OTZ/Tu3P51ff86ZKb0aUKyDocJrDBSwTQ++wHzuUxKmJV6edKSRHACVIJ0TkHsAFylUybscP/d78zu7MvNn1lYtL111hV+vgvBM/KEG9hqv/tHpBn190aMzogrFc92RHpw4uor8AxAwkTZHv4bkU/91L8RvuGrjp7gKloLST15UQ1HzM7md/NrdWrdGuKFumohySBIe7gvolaYpCmv/rD3OfubdgxTuMCkLAiOMtr6uxc37PCNBySBFYMj3P7n44+909PZlUp7N4hssurpkxce7HFGg55BEABxJxcdcP8iWbxA3l/YMQeD4uLPh9ae6zM31MqQO0HApwjqQlnn4+/vjhRNKCUNw8CIHPMJBjuR7u83NeDS2HKgTwGHn8cAJUfecIymlL9KYZ42f0ZHRnaDmUoRS/eTEuWCevrhAwKHIpzsWZPTffEVoONQRAiSg61K2jgymJAAyCRFwIce6nHFoOVQQoge8Tv+P+NwGl3VCraDmUIeAC8Zjo/GSXAO+GbBRaDlUIwAXpy/CE2UmrgwBMoFonlHRBp0PLoQznuHSWRzpaueB6yVLFoKQLpm9aDjWEgBkTl8+rCvVaVACUwHHJuE2peiV85tFyKGBQODUy/zW1t82rVVzlakUIxGN4pWQUHRrrhpxUyyFLsE/4jKxYVEonOjmtIwRiBp4fiemR/XlFMKk/UqKf+MviX72tUq50eiqM4sD/WnW/O46hT7nDPvIQMnHuy3GJx8in31/85w+OV1x0no36+O9nE0Y3mIGpKQch0RNRLuD7xGeo+yRmYP7FtVXvKy5+a8VxIUQnA1UhYMXxf0eM/c9ZSYt3xW2AppwcQqBaj7j4zCAw4yKXYdPz7I2vqb37jdV3XlZNp0TZAen0jiBcwDSx62DqpXGjN831AeNzC0pQ83DxNO8/V7/U/gWmVCTiIpfi03IslQSAShVHnZO6haFB4Lr43p50vEtO+mBKyQGAC6Qscfm8WuSr07pu5agDAJSelBmMI9uD//hFct+zVjohuiKmYKrJgcaxconva2ajp+TqZ4OiWsOmf88TAnRDbzRgyskBdDJqPxl8hlwWd+3M7n0m0dvTHdlGgO5znF58hmwPnnjG3PBgbzrRHUVKCy3HaYRxpBJ4edwY/upApUa6ois6GS3H6cJnSFkoV+nfbRw4/IKZToiuuzmpluPUI4I8owcvF40P3THtvw4nc8GduLuNqZiQnlYYh0GRy2Lfr62Pf63/ty+avemuNANajlOFQOMC62wKlRq+/EDuzh35mkeyqW41A1qOk0QAgkMAMQPpHvg+fvRE8s4d+X3PJDJJnrS64z4cYWg51BAAJt0RKm4gkQQxUCqTnXuT23ZlHn0qCaA3zbno+tvjTzk5BNDx1WZBwzQWQ9wAMQCB8TJ58nfmIwdSP3oi+esXTAiSSXKcLx+sMbXkEECMIt2j+DPNfzlDuUqOlOjzr8SefsHc/5y1/znrf/4Yd1ySMEUmKQDBedd0xyOZQnIEZozZ9OHdKZmxOxdgnNQ84rikVGl8UtMrJeOPxVjRodUaAWDFRcIUfRkhuj+InMhUkkPAiuEPo7FlWwbkx2mtz9AIjgjFDBE3hBkTibhA6wYv58tWcRxTSA40N4/+LJOSQwT/HLPJtD4d8nwVYjJTSw402pfdcLnZOYBun2tC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELp1tPnwWcBM5VPDm99grBGkq6UgxDke3gyjaSv8jF6ArCQS2k7ZOkyOYSAQYXtkhVfH0iaajf0DK5oKjrd8Tny5wLkgtlzzvZjUEYI2C7lopOPwzEo0gm9eUjRZTtHQBBWOv5xnXZI0pVyQL/AZwRdympC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhC0XJoQtFyaELRcmhCiVElPQSU7rREAEqh9NHgXPHGG2qPP/gweqWnQECJylM4j5YoVq5K3TuJAEIQAWSSXHJxKQETKDuUUqmfIADjJGWJmCEk/4RBUa4SIUAkXj8CcE5iMZGyhOT6GhRundQ8IvMUOlsiLlA615bIEKmE4BzkkTsTMn9DAEIg0yNu+3Z29yGrx4q4WRul8HxCgDv+Yfw101ndQ8Rt2gg8H/058cNfJr70/UxK4mZwMQNHSsbH3lteemW16kb/fsaQtDBuk5vuzhcdI3J9YwbGbTr/4vrtf3OUQIioW5AFS5RLi7X3Z3cdsHoSEQpSCp8RxvDFvy++bpZfr0stUSEnHtlvrf9eNmFG+xEzcKRoXH+N/ZF3VipyS5Qw4bhk5dfzI0eN2Lve6Eb8BQCAECBprL83vfuQmTR5m7suCcAgqHtgTGy7aWzxFa6oRd0tlID5MHL4xZPxe36SjFHOeYTmMQMvj9PhhaVNy0oy7wjOQC3UXQytLRwp0pTF27xyQiAeE+NlOm927f7PjF40gwkv+oanQoBk8OX70j89EE+anLF230wJPB91D99YMTr0Lle40Uvk+4hlsf9g/O6fpAzKI+NjsETXLzh618eKlCBilYIlMsE8LF1feHGM9lg8drTS/kfAASFIPi0+uyX7xQdyAznW/jEZzTfEN1eNLrrcLY5FxDwCeIz0ZcXDe6zrNhSYIMl4xLYRM3CkSIcXljctL9kOWNv3NAF8jqQFe5QOri3sPWz1Z9vJDSAeQ9Ex5l3o7bxlZGYvLxZhRKUFnJN8Vnzha9nb7s8N5Fj776YEjJOah60rxwavcoujskv02M+tJesKdZ9E3mYzWKLrr3G2DBcdF4y1k48AjMMy4VbpknWFxw5aAznOOGJG24clBCiQyYib781+6cHs9Dxrv6yUwGfwfGxfNbrocrdURDzqlnQeQ19e7NpvffiOAkBSpmj/J4KnfeNCe+Pykl0BgFjbp8A4ehKwa2TJ+sLPn7Wm5bnnR/z+okPnzW6Y4VQjnoIQ4AL5vLh1e3btv2Wn51n7bY8SMA63YUZVfol2HzQ/sKHgM5Kyopfo5SL9xwX25uFixQUEYka772ccSQuuT67b0LfnkDU9zz0GtC9lhYAAMmncfG92w/eygU1toBQ+g++TwIxiCTGJp53PYdd+67oNBcaJFZc2Y1nRdgARsRszjoQFu0aH1vTvPWz1Z9qZIRpmkHmzAjOYXYXRdlkDM7JZ3Lo9c9v92f5sREBsmkG2rhwbvLJaKka8bAiWKIvdB8yl6/rrPknIvXluuMbefGOx4kJILJEVh+uTpWsLjx1M9GcbZqDNrSaDkJbJNMyYFmkGgc+I34wmpRLikU/bRz6HXU9aH9hQ4NJmDAdmVABImGHCdunQmkLDjLZ5QDwwY7bfMqP9KzfJjOzt92cHVM0oSZtx0Fyyvr/uk4TcEl1/jb1luFhxwUVEEtqIJh5Zuq7/saesyWYgTI5jzHggO5DjvtSeMWGG1NNu7hlcyJtR3tSMJjJmOG4zz4gyoxFNZtV33jLagRmSe0bNI1tXjg5e5ZbG5bbVLPYckDUjbuBldTNqdbJ0XeFEM/CqYaURTVp7RlT6FpRknk++2Yomcm+IXfutDwTRJCZhRokOL7QbZshEk8lmnPC0T/z9RZvOm+3tWD06s0/JjIykGT6HWyf3rBwbvNItFaXNOGgOre+ve1J7xmQzhPSesWRd4bGnEq+6RMfLcVyeMU1qzyCtPaMoEU18f8IMhWjyF/am5UV5M+waGVxTeDwqz8BEBlrfccvIBb3MrkSZAYiJPCMnt2eQuke2fmps8MqqzJsnWKLdB80lKnlGYIbjgsvkGUE0WRtqBo4LK8eY8YCEGSTYM5q1iUye0YgmpmKeUd60TGHPsGtkaE3/3mek8ozxCTN49J4BcN7aM3LSeQa2rhwdvFLqzROkYhNmyOcZNxYrVak9I2Gi2ogmoWZgshzHmTGQldgzfHhMbF81ppBnZJt5hpIZKtGkYcZhqyCRZ4w7dN4sb+ctozP7ePSe0VGe0cxAZQv7wIylKmY0apOqbJ5RbWWguXbbaiOsHB9NIvMMAt+Hx0lgRid5hmzV2uh0qUQTWTOKDpk3q75z9chMmWgSmJHBrdszt39HKQMdG7yqWpIs7JtVa00uzwj2jM3DsnvGRDQ5ZPVnIwIuxYn9jLxEBsrhM7L9ptFFl7vFonw0Ud0z7I3LVGqTGh1a079Pwox4I8/wlWuT+zK3fyfXn5M1454VjU5X9JunkWdYS9b31xTyDKdVmyjkGYcSkQGXEMSOjya5qKEAhe/DZ2RbKwOVe0N00M/YtKxoV+VrE3KtRNUqWnlG0Onqk8pAj4kmEi2fiWgiaQZDPoc9B82l6wodVK2Se0YtKgOdeAoUdY9QIZBJ4+atcp0uCt8nPsO2VaOLT2dtcuPC8qZlsrVJ0oTt0mvX9sv0M8xGP8PbufoVyWgi+PF5Rhsohc+J65GtK2R7oH6z0zUkHU1eLtHrF9hb5HugJmoeWRKYkYtYIsOAUyUz+3yayWL1tuz6B7IDee5HDRKbZoxJmuEx5PLqVatiNCm7ZEi60zXe6Ge8MlOuNhECGaUMlKHuYeuKscGr5apWhlyravWko8kCZ/PHi05VIZosae0ZUYV9yaGvvcDfccsIWfWh3OYfZPJpiTcEg9/sdMn3QB95UjnPUIomtksGgz1D4mk394yRmX3MqSjNTXIDEkl6I5qsaGag8t1x1ap1WHFusu74uUnY7y9V6CXTvYdWj8yZxkhP76xMIurkDoHPJ8yQ3DOCuYnSRG14ob1pedF2AJk9w4JdpUNrm52uqDxjwgy17njmdrlOl9+qTRTnJo3aRL7T1exnKEzUJPKMmIFShcyd7u9cPXLRACtXEMskow4sEfgcnq8yUZucgSrMTexNy6TNMGXNQGCGTeZdqDg3yXQwN1GfqKn2QOXNaEzUpM1wyCUzJplhgEpGk+2rxhYrdroaeYbM3KTR6SraVUDSjBqRnLU25yZ+ozZRqlplzKDKU3i/NVGTiybxyd1x6T2j5slGk3gQTWb4D00yA+3PcwS1icfJtlWji96u1ulSyjNuXGirdscH1/TvfUau02WTiQxUugd62/ZsEE2YRAZ6zBReorAPMlDFiVqjnyGzRJaJmk+WrCs8GmVG4whLhVwy3dt5rBloI0dj1sqw/abRxW+X63T5E2Yo9UA3SletQQYq3x0PznTtWD1yQS+3XaWJmkTV2jjtR7auHD1NE7VJe8a45EQt0apNDiYGZPYMh86d7j+0emTOsWYgTI7jJ2qKPVCVDLSsVLXaNTq0tl8mz5hcm1wQ5BntD0QCnAdVa+b2++V7oLhn5djgVbKpWC6H3dLRpLMpfLVOlq4tPCqbZ9BLZno7TtgzGt9w4s8cN1GTrU062TPsjctKqnmGdG1CWudAZfIMgSDPaGagbc8Id37aLzjTpVSbKJ7PCCZqA20namhmoHNneDtveXUzcOLOEZwQ9hlpzVpPUzQZDqKJSj9j4hyozGm/WWoZaEZxoqZ02s+fVLWq1CaOUg+0eT4jouUjJszwT8wzjnmmx/wPhc/hMcUzXTnlWetwkIHKz01qZHBt/+NPS0/UZvlBp0tpCi99ckf5HGizB1qoKXS6nC3D4xXpHqj83CQeVK0zI8zA5LDSmpuondyZVLWaSid3FMygg2sK++RO+41P6oGqTtQkT+5MnAOVjiZ7VHugC9SjiXynK9gzwqNJi8bO0axaIb9nnDhRa5/bB+nVsErVmjRh1+jgmoJCbdLqgUpO1DIK50AZJ25jCi9lht86B9rBmS757rhip2vuDH/H6pELo8xAIEfj5A5DcD5DPvHupJ+xvGhXIKQnapJmxI+btcpP1L4lfw4UbmuiJrdnHDNRkz7TpXA+I+R6k7DfX3JoYMacgeg3D4JbMPj+RJ7RSQ9U6UqkCgCpQ462S4bkpvDHRJNe7ijOTVSuNxltnPZTmpuodMc3y0cT1bmJQ+fOeJVOVxicg3p+UJs0zmdIbZUd7Rkblc6Ou1TGjIlr1GbXWxO1yFmrmMgzFDPQqxTaxMGeIXvar0RvWKAyazUbZkT2M1q1ySUqZgiBdBLUZ2Trp0YXyfVAfYZcDj+VnrUaNLgWvrxRbtbKOZIWnBoJJmoy0WTcJpfOkj3tB0AAmSxuva/ZAxVRs1aGap1sXTHauK5V7s2zR7oHagTXwr+ncfViZDThHAmrOTd5SqoHWnTIJdOPn5u0QQike7DpoTT58R3WgjfXSuXon2Ec2TQeftL68B1SZlCCcZsOLyx/+Qap2oQLWHGUKnTpusK+Z6y+TNThIwq7Sl5/offg56U6XQCEQE8K//KtzNrvRu8ZhIBxME7u/uTYtVdUZZqBjCPbg0cPWtdtkDrtZ1CM2fT6BfZXlhcdibkJFzBjcGr0ug19P5OIJgZF2SWvm+k/+Hk1M9Z8O/OFb+cIfxjlKtpfa49A2AT2HTaH1vb7TMIMinKFfOSdla9+YlwmmggBSuF69IMb+h6VeEMQgrpHLprm77hl5KJ+uSAqkErgzgfSn9uejzwQ2fgTPtm8fOyD767KbKtcIGHiid+a164pVOs0GbVnBHIveUflGyvGZa5eFAAlqDP613f0/Xh/IvJ2AYTA88nMPrbj5pG5M/2jjlSekUriKw+l/+mefH+O/z+Ln3AyeOE+SgAAAABJRU5ErkJggg==" />
@@ -1061,7 +1061,7 @@
     <div class="hazard-strip"></div>
     <div id="header">
       <div class="header-top-row">
-        <h1>RS4 야간2</h1>
+        <h1>RS4 야간</h1>
         <div class="header-btns">
           <button id="syncStatusBtn" class="sync-status-btn" type="button">팀 코드</button>
           <button id="btnHeaderRefresh" class="sync-status-btn refresh-btn" type="button" title="새로고침" aria-label="새로고침" onclick="AppMap.refreshApp()">↻</button>
@@ -1308,12 +1308,12 @@
   // 로깅 기록(logs)과 장소 체크리스트(spots) 둘 다 공유된다.
   // 팀 코드가 입력된 기기끼리만 같은 방(rooms/{teamCode}/logs, rooms/{teamCode}/spots)을 보고 쓸 수 있다.
   var FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDD-KqD9b6OOvQ2C3xD7QEbHcJGRjWOVsA",
-    authDomain: "rs4-v2-2.firebaseapp.com",
-    projectId: "rs4-v2-2",
-    storageBucket: "rs4-v2-2.firebasestorage.app",
-    messagingSenderId: "373188023391",
-    appId: "1:373188023391:web:06eea6aa7c832b154937ea"
+    apiKey: "AIzaSyDwv28dsrqm4dDZ8XkfP5bZOUuM4UrbWZY",
+    authDomain: "rs4-v2.firebaseapp.com",
+    projectId: "rs4-v2",
+    storageBucket: "rs4-v2.firebasestorage.app",
+    messagingSenderId: "948410392006",
+    appId: "1:948410392006:web:b64e703a57e36835a8a6c7"
   };
   // 이 기기를 구분하는 값. 같은 팀 코드의 폰 여러 대가 같은 주행 로깅을 같이 추적하는데, 시작하지 않은
   // 폰(follower)이 자기 복사본 전체를 5초마다 클라우드에 올리면, 시작한 폰이 방금 바꾼 상태(정지/휴식/
@@ -1343,7 +1343,7 @@
   }
   try {
     var storedTeamCode = localStorage.getItem(TEAM_CODE_KEY) || null;
-    if (!storedTeamCode){ storedTeamCode = 'RS4NIGHT2'; localStorage.setItem(TEAM_CODE_KEY, storedTeamCode); localStorage.setItem(TEAM_CODE_PROMPTED_KEY, '1'); }
+    if (!storedTeamCode){ storedTeamCode = 'RS4NIGHT'; localStorage.setItem(TEAM_CODE_KEY, storedTeamCode); localStorage.setItem(TEAM_CODE_PROMPTED_KEY, '1'); }
     teamCode = storedTeamCode ? normalizeTeamCode(storedTeamCode) : null;
     // 정규화된 값으로 다시 저장해둬서, 다음부터는 항상 대문자 형태로 일관되게 남게 한다.
     if (teamCode && teamCode !== storedTeamCode) localStorage.setItem(TEAM_CODE_KEY, teamCode);
@@ -1979,7 +1979,7 @@
       '<h3>팀 코드 입력</h3>' +
       '<p>같이 다니는 폰끼리 같은 코드를 입력하면, 로깅 기록과 장소 체크리스트를 서로 실시간으로 보고 이어받을 수 있어요. 안 써도 이 기기 안에서는 그대로 사용 가능해요.<br/>대문자/소문자는 구분하지 않아요(자동으로 대문자로 저장돼요) — "RS4"와 "rs4"는 항상 같은 팀으로 합쳐져요.</p>' +
       (teamCode ? '<p class="modal-field-label">상태: ' + escapeHtml(syncStateLabel()) + '</p>' : '') +
-      '<input type="text" id="teamCodeInput" value="' + escapeHtml(teamCode || '') + '" placeholder="예: RS4NIGHT2" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />' +
+      '<input type="text" id="teamCodeInput" value="' + escapeHtml(teamCode || '') + '" placeholder="예: RS4NIGHT" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />' +
       '<div class="popup-actions">' +
         '<button class="btn-secondary" onclick="AppMap.skipTeamCode()">나중에</button>' +
         '<button class="btn-primary" onclick="AppMap.confirmTeamCode()">저장</button>' +
@@ -2584,7 +2584,7 @@
   }
   // ---- 기록 코드 선택 (주행 DRV/DRV_H, 주차장 PRK_재질, 주차 PRK_재질_유형) ----
   // 화면 버튼은 한글, 화면 뱃지와 엑셀 비고_2에는 영문 코드로만 표시/저장한다.
-  var FLOOR_OPTS = [ { ko: '잔디', code: 'GRASS' }, { ko: '콘크리트', code: 'CONCRETE' }, { ko: '우레탄', code: 'URETHANE' }, { ko: '아스팔트', code: 'ASPHALT' } ];
+  var FLOOR_OPTS = [ { ko: '잔디', code: 'GRASS' }, { ko: '콘크리트', code: 'CONCRETE' }, { ko: '우레탄', code: 'URETHANE' }, { ko: '아스팔트', code: 'ASPHALT' }, { ko: '벽돌', code: 'BRICK' }, { ko: '기타', code: 'ETC' } ];
   var PARK_TYPE_OPTS = [ { ko: '직각', code: 'PERPEND' }, { ko: '평행', code: 'PARALLEL' }, { ko: '사선', code: 'DIAGNAL' }, { ko: '계단식', code: 'STAIR' } ];
   var DRIVE_OPTS = [ { ko: '일반도로', code: 'DRV' }, { ko: '고속도로', code: 'DRV_H' } ];
   var codeEditCtx = null;
