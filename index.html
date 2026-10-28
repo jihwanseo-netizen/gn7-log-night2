@@ -745,6 +745,10 @@
   /* 시간은 다음 줄(전체 너비)로 내려서 라벨이 세로로 꺾이지 않게 한다 */
   .legcard-record-time{ font-variant-numeric: tabular-nums; order: 3; flex-basis: 100%; padding-left: 24px; font-size: 12px; }
   .legcard-record-edit{ order: 2; }
+  .legcard-trip-summary{ padding: 8px 12px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .legcard-sum-main{ font-size: 13px; color: var(--ink); }
+  .legcard-sum-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .legcard-sum-chip{ font-size: 12px; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); color: var(--ink-dim); }
   .legcard-code-chip{ background: rgba(79,209,197,0.15); border:1px solid var(--line); color:#7fe3d6; border-radius:999px; padding:2px 9px; font-size:11.5px; font-weight:800; font-family: ui-monospace, Menlo, Consolas, monospace; cursor:pointer; margin-left:6px; }
   .legcard-code-chip.empty{ background: transparent; color: var(--yellow); border-style:dashed; font-family:inherit; }
   .code-edit-title{ font-size:13px; font-weight:700; margin:10px 0 4px; opacity:.8; }
@@ -4087,8 +4091,37 @@
       recordsHtml +
     '</div>';
   }
+  // 트립 전체의 기록 건수와 실제 로깅 시간(주행 / 주차장 기록 / 주차 기록 구간 합산)을 계산한다.
+  // 휴식 구간은 "실제 로깅 시간"에 넣지 않는다.
+  function tripRecordSummary(log){
+    var nowMs = log.endTime || Date.now();
+    function sumSegs(segs){
+      var total = 0, n = 0;
+      (segs || []).forEach(function(sg){
+        var end = (sg.end === null || sg.end === undefined) ? nowMs : sg.end;
+        total += Math.max(0, end - sg.start);
+        n++;
+      });
+      return { ms: total, n: n };
+    }
+    var drive = sumSegs(log.driveSegments);
+    var rest = sumSegs(log.restSegments);
+    var lotSegs = [], parkSegs = [];
+    (log.legs || []).forEach(function(leg){
+      (leg.lotSegments || []).forEach(function(sg){ lotSegs.push(sg); });
+      (leg.parkSegments || []).forEach(function(sg){ parkSegs.push(sg); });
+    });
+    var lot = sumSegs(lotSegs), park = sumSegs(parkSegs);
+    var events = (log.events || []).length;
+    return {
+      count: drive.n + rest.n + lot.n + park.n + events,
+      driveMs: drive.ms, lotMs: lot.ms, parkMs: park.ms,
+      totalMs: drive.ms + lot.ms + park.ms
+    };
+  }
   function renderTripCard(log){
     var isLive = !log.endTime;
+    var sum = tripRecordSummary(log);
     var endText = isLive ? '진행 중' : formatTimeHMS(log.endTime);
     var totalDur = (isLive ? Date.now() : log.endTime) - log.startTime;
     var legsHtml = (log.legs || []).map(function(leg, idx){ return renderLegCard(log, leg, idx); }).join('');
@@ -4099,6 +4132,14 @@
         (isLive ? '<span class="log-item-live">LIVE</span>' : '') +
         (log.vehicle ? '<span class="legcard-trip-vehicle">' + escapeHtml(log.vehicle) + '</span>' : '') +
         (isLive ? '<button type="button" class="item-force-stop" style="margin-left:auto;" onclick="AppMap.forceStopLog(\'' + log.id + '\')" title="끝나지 않은 채 남은 로깅을 지금 시각으로 강제 종료">강제종료</button>' : '') +
+      '</div>' +
+      '<div class="legcard-trip-summary">' +
+        '<div class="legcard-sum-main">기록 총 <b>' + sum.count + '건</b> · 실제 로깅 합계 <b>' + formatDuration(sum.totalMs) + '</b></div>' +
+        '<div class="legcard-sum-chips">' +
+          '<span class="legcard-sum-chip">🚗 주행 ' + formatDuration(sum.driveMs) + '</span>' +
+          '<span class="legcard-sum-chip">🅿️ 주차장 기록 ' + formatDuration(sum.lotMs) + '</span>' +
+          '<span class="legcard-sum-chip">🚙 주차 기록 ' + formatDuration(sum.parkMs) + '</span>' +
+        '</div>' +
       '</div>' +
       legsHtml +
     '</div>';
