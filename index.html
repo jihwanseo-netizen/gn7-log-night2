@@ -749,6 +749,8 @@
   .legcard-sum-main{ font-size: 13px; color: var(--ink); }
   .legcard-sum-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .legcard-sum-chip{ font-size: 12px; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--line); color: var(--ink-dim); }
+  .legcard-sum-chip.event-special{ color:#ffb36b; border-color: rgba(255,179,107,0.4); }
+  .legcard-sum-chip.event-child{ color:#f4d36a; border-color: rgba(244,211,106,0.4); }
   .legcard-code-chip{ background: rgba(79,209,197,0.15); border:1px solid var(--line); color:#7fe3d6; border-radius:999px; padding:2px 9px; font-size:11.5px; font-weight:800; font-family: ui-monospace, Menlo, Consolas, monospace; cursor:pointer; margin-left:6px; }
   .legcard-code-chip.empty{ background: transparent; color: var(--yellow); border-style:dashed; font-family:inherit; }
   .code-edit-title{ font-size:13px; font-weight:700; margin:10px 0 4px; opacity:.8; }
@@ -4112,9 +4114,16 @@
       (leg.parkSegments || []).forEach(function(sg){ parkSegs.push(sg); });
     });
     var lot = sumSegs(lotSegs), park = sumSegs(parkSegs);
-    var events = (log.events || []).length;
+    var specialN = 0, childN = 0;
+    (log.events || []).forEach(function(e){
+      if (e.type === 'special') specialN++;
+      else if (e.type === 'child') childN++;
+    });
     return {
-      count: drive.n + rest.n + lot.n + park.n + events,
+      // 기록 건수는 주행 / 주차장 기록 / 주차 기록 구간만 센다(휴식, 특이사항 버튼은 제외)
+      count: drive.n + lot.n + park.n,
+      driveN: drive.n, lotN: lot.n, parkN: park.n,
+      specialN: specialN, childN: childN,
       driveMs: drive.ms, lotMs: lot.ms, parkMs: park.ms,
       totalMs: drive.ms + lot.ms + park.ms
     };
@@ -4134,11 +4143,15 @@
         (isLive ? '<button type="button" class="item-force-stop" style="margin-left:auto;" onclick="AppMap.forceStopLog(\'' + log.id + '\')" title="끝나지 않은 채 남은 로깅을 지금 시각으로 강제 종료">강제종료</button>' : '') +
       '</div>' +
       '<div class="legcard-trip-summary">' +
-        '<div class="legcard-sum-main">기록 총 <b>' + sum.count + '건</b> · 실제 로깅 합계 <b>' + formatDuration(sum.totalMs) + '</b></div>' +
+        '<div class="legcard-sum-main">로깅 기록 <b>' + sum.count + '건</b> · 실제 로깅 합계 <b>' + formatDuration(sum.totalMs) + '</b></div>' +
         '<div class="legcard-sum-chips">' +
-          '<span class="legcard-sum-chip">🚗 주행 ' + formatDuration(sum.driveMs) + '</span>' +
-          '<span class="legcard-sum-chip">🅿️ 주차장 기록 ' + formatDuration(sum.lotMs) + '</span>' +
-          '<span class="legcard-sum-chip">🚙 주차 기록 ' + formatDuration(sum.parkMs) + '</span>' +
+          '<span class="legcard-sum-chip">🚗 주행 ' + sum.driveN + '건 · ' + formatDuration(sum.driveMs) + '</span>' +
+          '<span class="legcard-sum-chip">🅿️ 주차장 기록 ' + sum.lotN + '건 · ' + formatDuration(sum.lotMs) + '</span>' +
+          '<span class="legcard-sum-chip">🚙 주차 기록 ' + sum.parkN + '건 · ' + formatDuration(sum.parkMs) + '</span>' +
+        '</div>' +
+        '<div class="legcard-sum-chips legcard-sum-events">' +
+          '<span class="legcard-sum-chip event-special">⚠ 특수차량 ' + sum.specialN + '회</span>' +
+          '<span class="legcard-sum-chip event-child">🧒 어린이 ' + sum.childN + '회</span>' +
         '</div>' +
       '</div>' +
       legsHtml +
