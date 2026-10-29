@@ -465,6 +465,9 @@
     font-family: inherit;
   }
   .trip-mode-btn-drive{ background: var(--blue); }
+  .trip-drive-start-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .trip-drive-start-grid .trip-mode-btn{ padding: 14px 4px; min-height: 58px; border-radius: 9px; font-size: 16px; font-weight: 800; line-height: 1.25; }
+  .trip-drive-start-grid small{ font-size: 11px; font-weight: 700; opacity: .85; font-family: ui-monospace, Menlo, Consolas, monospace; }
   .trip-mode-btn-stop{ background: #E5484D; }
   .trip-mode-btn-break{ background: var(--orange); }
   .trip-mode-btn-lot{ background: #0E9F6E; }
@@ -1111,6 +1114,10 @@
           <div class="trip-code-label" id="tripCodeLabel"></div>
           <div class="trip-leg-timer" id="tripLegTimer">00:00</div>
           <div class="trip-mode-row">
+            <div class="trip-drive-start-grid" id="tripDriveStartGrid">
+              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveNormal">🚗 일반도로<br><small>DRV</small></button>
+              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveHighway">🛣️ 고속도로<br><small>DRV_H</small></button>
+            </div>
             <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnTripDriveToggle">🚗 주행 기록 시작</button>
             <button type="button" class="trip-mode-btn trip-mode-btn-break" id="btnTripBreak" style="display:none;">☕ 휴식 시작</button>
           </div>
@@ -2860,8 +2867,12 @@
     if (!isArrived){
       // 이동 중: 주행 기록 시작/정지는 버튼 하나가 스스로 이름을 바꾸는 토글 방식. 휴식 중에는
       // 주행 관련 버튼 자체를 숨겨서 "휴식 종료"만 조작할 수 있게 한다.
+      // 주행 중이 아닐 때(대기/정지됨)는 일반도로/고속도로 시작 버튼 2개가 같은 자리에 바로 보이고,
+      // 주행 중일 때만 빨간 "주행 기록 정지" 버튼이 나온다. 휴식 중엔 둘 다 숨긴다.
+      var driveGrid = document.getElementById('tripDriveStartGrid');
+      if (driveGrid) driveGrid.style.display = (!isDriving && !isResting) ? '' : 'none';
       if (toggleBtn){
-        toggleBtn.style.display = isResting ? 'none' : '';
+        toggleBtn.style.display = isDriving ? '' : 'none';
         toggleBtn.textContent = isDriving ? '🛑 주행 기록 정지' : '🚗 주행 기록 시작';
         toggleBtn.classList.toggle('trip-mode-btn-drive', !isDriving);
         toggleBtn.classList.toggle('trip-mode-btn-stop', isDriving);
@@ -2876,6 +2887,8 @@
     } else {
       // 도착함: 주행 시작/정지 토글은 더 이상 의미가 없으니 완전히 숨긴다.
       if (toggleBtn) toggleBtn.style.display = 'none';
+      var driveGrid2 = document.getElementById('tripDriveStartGrid');
+      if (driveGrid2) driveGrid2.style.display = 'none';
       // 휴식/주차장 기록/주차 기록은 서로 배타적 — 셋 중 하나가 켜져 있으면 나머지 둘은 숨긴다.
       if (breakBtn){
         breakBtn.style.display = leg.lotMode ? 'none' : '';
@@ -5253,7 +5266,15 @@
       var log = activeTripLog();
       if (!log) return;
       // 주행 중이면 정지로, 아니면(대기/정지됨/휴식 중) 주행 시작으로 — 버튼 하나가 스스로 토글된다.
-      if (log.mode === 'drive') setTripMode('stopped'); else openTripPicker('drive');
+      if (log.mode === 'drive') setTripMode('stopped');
+    });
+    document.getElementById('btnDriveNormal').addEventListener('click', function(){
+      var log = activeTripLog();
+      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV');
+    });
+    document.getElementById('btnDriveHighway').addEventListener('click', function(){
+      var log = activeTripLog();
+      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV_H');
     });
     document.getElementById('btnTripBreak').addEventListener('click', function(){
       var log = activeTripLog();
