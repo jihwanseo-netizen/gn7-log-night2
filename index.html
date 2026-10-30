@@ -141,6 +141,22 @@
     border-bottom: 1px solid var(--line);
     flex-shrink: 0;
   }
+  #bigTimerWrap{
+    padding: 10px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+    text-align: center;
+  }
+  #bigTimer{
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  /* 로깅 중에는 상단 작은 타이머 알약 대신 위의 큰 타이머가 그 역할을 한다 */
+  body.logging-active #logTimer{ display: none !important; }
   .stat-box{
     flex: 1;
     background: var(--asphalt-2);
@@ -1073,6 +1089,7 @@
         <h1>RS4 야간2</h1>
         <div class="header-btns">
           <button id="syncStatusBtn" class="sync-status-btn" type="button">팀 코드</button>
+          <button id="btnStatsToggle" class="sync-status-btn refresh-btn" type="button" title="기록된 장소 / 방문 완료 / 높이 미확인 보기" aria-label="장소 통계 보기" style="display:none;">📊</button>
           <button id="btnHeaderRefresh" class="sync-status-btn refresh-btn" type="button" title="새로고침" aria-label="새로고침" onclick="AppMap.refreshApp()">↻</button>
         </div>
       </div>
@@ -1092,6 +1109,7 @@
         <div class="stat-label">높이 미확인</div>
       </div>
     </div>
+    <div id="bigTimerWrap" style="display:none;"><div id="bigTimer">00:00</div></div>
     <div id="logPanel">
       <div class="log-status-line">
         <span class="log-status-dot" id="logStatusDot"></span>
@@ -1292,7 +1310,7 @@
     { key: 's_curve',  label: '〰 S자' },
     { key: 'etc',      label: '❓ 기타' }
   ];
-  var tripModalVehicle = 'LX2'; // 트립 시작 모달에서 고른 차종 (LX2/GN7) — 임시 선택값
+  var tripModalVehicle = 'GN7'; // 트립 시작 모달에서 고른 차종 (GN7/JW1) — 임시 선택값
   var tripPanelLegId = null;    // 트립 패널의 메모/체크박스를 leg가 바뀔 때만 다시 채우기 위한 추적용
   var wakeLock = null;          // Wake Lock — 화면이 꺼지지 않게 해서 트립 중 위치 추적이 끊기는 걸 최소화
 
@@ -2597,7 +2615,7 @@
   }
   // ---- 기록 코드 선택 (주행 DRV/DRV_H, 주차장 PRK_재질, 주차 PRK_재질_유형) ----
   // 화면 버튼은 한글, 화면 뱃지와 엑셀 비고_2에는 영문 코드로만 표시/저장한다.
-  var FLOOR_OPTS = [ { ko: '잔디', code: 'GRASS' }, { ko: '콘크리트', code: 'CONCRETE' }, { ko: '우레탄', code: 'URETHANE' }, { ko: '아스팔트', code: 'ASPHALT' }, { ko: '벽돌', code: 'BRICK' }, { ko: '기타', code: 'ETC' } ];
+  var FLOOR_OPTS = [ { ko: '벽돌', code: 'BRICK' }, { ko: '아스팔트', code: 'ASPHALT' }, { ko: '콘크리트', code: 'CONCRETE' }, { ko: '우레탄', code: 'URETHANE' }, { ko: '잔디', code: 'GRASS' }, { ko: '기타', code: 'ETC' } ];
   var PARK_TYPE_OPTS = [ { ko: '직각', code: 'PERPEND' }, { ko: '평행', code: 'PARALLEL' }, { ko: '사선', code: 'DIAGNAL' }, { ko: '계단식', code: 'STAIR' } ];
   var DRIVE_OPTS = [ { ko: '일반도로', code: 'DRV' }, { ko: '고속도로', code: 'DRV_H' } ];
   var codeEditCtx = null;
@@ -3043,7 +3061,7 @@
     }
   });
   function openTripStartModal(){
-    tripModalVehicle = 'LX2';
+    tripModalVehicle = 'GN7';
     var lastSSD = '';
     try { lastSSD = localStorage.getItem('lastSSD') || ''; } catch(e){}
     var lastDriver = '';
@@ -3054,8 +3072,8 @@
       '<input type="number" id="modalStartKm" placeholder="예: 12345" />' +
       '<label class="modal-field-label">차종</label>' +
       '<div class="env-toggle" id="tripVehicleToggle">' +
-        '<button type="button" class="env-toggle-btn active" data-vehicle="LX2">LX2</button>' +
-        '<button type="button" class="env-toggle-btn" data-vehicle="GN7">GN7</button>' +
+        '<button type="button" class="env-toggle-btn active" data-vehicle="GN7">GN7</button>' +
+        '<button type="button" class="env-toggle-btn" data-vehicle="JW1">JW1</button>' +
       '</div>' +
       '<label class="modal-field-label">SSD 번호 (선택)</label>' +
       '<input type="text" id="modalSsdInput" value="' + escapeHtml(lastSSD) + '" placeholder="예: SSD-01" />' +
@@ -3477,6 +3495,7 @@
       text.textContent = '로깅 대기 중';
     }
 
+    applyStatsVisibility(!!anyActive);
     if (anyActive){
       // 트립(주차 탐색) 중에도 트립 패널 안의 leg별 타이머(지금 목적지에서 얼마나 지났는지)만
       // 보여주고 이 상단 타이머는 숨겼었는데, 그러면 "로깅을 시작한 뒤로 총 얼마나 지났는지"를
@@ -3526,6 +3545,39 @@
     var end = (last.end !== null && last.end !== undefined) ? last.end : Date.now();
     return Math.max(0, end - last.start);
   }
+  // 로깅 중에는 "기록된 장소/방문 완료/높이 미확인"을 숨기고 그 자리에 큰 타이머를 보여준다.
+  // 작은 📊 버튼을 누르면 통계가 다시 나타난다(로깅이 끝나면 항상 보임).
+  var statsPeek = false;
+  function applyStatsVisibility(logging){
+    var statsEl = document.getElementById('stats');
+    var wrap = document.getElementById('bigTimerWrap');
+    var btn = document.getElementById('btnStatsToggle');
+    if (!logging) statsPeek = false;
+    document.body.classList.toggle('logging-active', !!logging);
+    if (statsEl) statsEl.style.display = (logging && !statsPeek) ? 'none' : '';
+    if (wrap) wrap.style.display = logging ? '' : 'none';
+    if (btn){
+      btn.style.display = logging ? '' : 'none';
+      btn.classList.toggle('active', !!(logging && statsPeek));
+    }
+    if (logging) syncBigTimer();
+  }
+  // 큰 타이머는 기존 타이머(#logTimer)의 값/색/깜빡임을 그대로 따라 한다.
+  function syncBigTimer(){
+    var src = document.getElementById('logTimer');
+    var big = document.getElementById('bigTimer');
+    if (!src || !big) return;
+    big.textContent = src.textContent || '00:00';
+    // 4분 제한이 걸린 기록(주차장/주차/주행 구간)이면 작은 타이머와 똑같이 붉게 변하고 깜빡인다.
+    var el = currentRestartLimitedElapsedMs();
+    if (el !== null){
+      big.style.color = restartLimitColor(el);
+      big.classList.toggle('log-timer-overdue', el >= RESTART_LIMIT_MS);
+    } else {
+      big.style.color = '';
+      big.classList.remove('log-timer-overdue');
+    }
+  }
   function updateTimerText(){
     var timer = document.getElementById('logTimer');
     var refId = activeSceneId || activeLotId || activeParkingId || activeRoadId;
@@ -3555,6 +3607,7 @@
       elapsed = Date.now() - log.startTime;
     }
     timer.textContent = formatDuration(elapsed);
+    syncBigTimer();
   }
   // 4분 안에 끊었다가 다시 시작해야 하는 "리스타트 제한" 대상의 지금 경과 시간을 하나로
   // 통일해서 계산한다 — 대상은 다음 셋 중 하나뿐이고(동시에 두 개가 활성화되는 일은 없음):
@@ -3630,6 +3683,7 @@
       urgentTimer.classList.remove('log-timer-overdue');
     }
 
+    syncBigTimer();
     if (flash){
       if (!urgent){
         flash.style.opacity = '0';
@@ -5325,6 +5379,10 @@
       });
     }
 
+    document.getElementById('btnStatsToggle').addEventListener('click', function(){
+      statsPeek = !statsPeek;
+      applyStatsVisibility(!!(activeRoadId || activeLotId || activeParkingId));
+    });
     document.getElementById('btnDayEnd').addEventListener('click', function(){
       // "회사 복귀" 버튼이 없어진 대신, 진행 중인 트립이 있으면 리포트를 만들기 전에 여기서
       // 자동으로 트립을 종료해준다(예전에 회사 복귀를 눌러야 했던 것과 같은 효과).
