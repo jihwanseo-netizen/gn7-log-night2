@@ -117,6 +117,10 @@
     font-family: inherit;
     white-space: nowrap;
   }
+  .sync-status-btn.gps-ok{ border-color:#12A594; color:#12A594; }
+  .sync-status-btn.gps-wait{ border-color:#E0A800; color:#B88700; }
+  .sync-status-btn.gps-bad{ border-color:#D64545; color:#D64545; }
+  .sync-status-btn.gps-off{ border-color:var(--line); color:var(--ink-dim); }
   .sync-status-btn.linked{ border-color: #12A594; color: #12A594; }
   .header-btns{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
   .refresh-btn{ font-size: 14px; line-height: 1; padding: 3px 9px; }
@@ -1088,6 +1092,7 @@
       <div class="header-top-row">
         <h1>RS4 야간2</h1>
         <div class="header-btns">
+          <button id="gpsStatusBtn" class="sync-status-btn" type="button" aria-label="GPS 기록 상태">GPS</button>
           <button id="syncStatusBtn" class="sync-status-btn" type="button">팀 코드</button>
           <button id="btnStatsToggle" class="sync-status-btn refresh-btn" type="button" title="기록된 장소 / 방문 완료 / 높이 미확인 보기" aria-label="장소 통계 보기" style="display:none;">📊</button>
           <button id="btnHeaderRefresh" class="sync-status-btn refresh-btn" type="button" title="새로고침" aria-label="새로고침" onclick="AppMap.refreshApp()">↻</button>
@@ -1293,6 +1298,8 @@
   // 깜빡이는 문제가 있었다. 권한 거부를 감지하면 이 플래그를 세워 워치독의 자동 재시작을 멈추고,
   // 위치 재요청이 실제로 성공하면(권한을 다시 허용한 경우) 다시 풀어준다.
   var geoPermissionDenied = false;
+  var gpsRealFixAt = 0; // 실제로 좌표가 들어온 마지막 시각 (헤더 GPS 표시등용 — lastFixAt은 시작 시각으로도 갱신되므로 따로 둠)
+  var GPS_OK_MS = 10000; // 이 시간 안에 좌표가 들어왔으면 🟢
   var highwaySampleTimestamps = {}; // logId -> 마지막으로 구간명을 확인한 시각(로컬 전용, 클라우드로 동기화 안 됨)
   var followMode = false; // true면 실시간 위치가 갱신될 때마다 지도를 그 위치로 따라감(일반도로 로깅 중에만 동작)
   var showVisited = false; // true일 때만 '갔던 곳'(visited=true) 핀을 지도에 표시. 평소엔 숨겨서 지도가 복잡해지지 않게 함
@@ -3259,6 +3266,25 @@
       }
     });
   }
+  // 헤더 GPS 표시등: 🟢 기록 중(좌표 수신 중) / 🟡 신호 대기 / 🔴 권한 꺼짐·미지원 / ⚪ 기록 안 함
+  function gpsState(){
+    if (!navigator.geolocation) return {dot:'🔴', cls:'gps-bad', label:'GPS', tip:'이 브라우저는 위치 추적을 지원하지 않아요.'};
+    if (!shouldTrackActiveRoad()) return {dot:'⚪', cls:'gps-off', label:'GPS', tip:'지금은 GPS 기록을 하고 있지 않아요. (로깅 시작 전이거나, 주행 기록이 아닌 상태)'};
+    if (geoPermissionDenied) return {dot:'🔴', cls:'gps-bad', label:'GPS', tip:'위치 권한이 꺼져 있어요. 기기 설정에서 이 앱(브라우저)의 위치 권한을 켜주세요.'};
+    if (gpsRealFixAt && Date.now() - gpsRealFixAt < GPS_OK_MS) return {dot:'🟢', cls:'gps-ok', label:'GPS', tip:'GPS로 경로를 기록하고 있어요.'};
+    return {dot:'🟡', cls:'gps-wait', label:'GPS', tip:'GPS 신호를 기다리는 중이에요. 하늘이 트인 곳에서 잠시 기다려주세요.'};
+  }
+  function updateGpsStatusButton(){
+    var btn = document.getElementById('gpsStatusBtn');
+    if (!btn) return;
+    var st = gpsState();
+    var txt = st.dot + ' GPS';
+    if (btn.textContent !== txt) btn.textContent = txt;
+    btn.className = 'sync-status-btn ' + st.cls;
+    btn.title = st.tip;
+    btn.setAttribute('data-gps', st.cls);
+  }
+  setInterval(updateGpsStatusButton, 1000);
   function setGeoStatus(msg){
     var el = document.getElementById('geoStatus');
     if (!msg){ el.style.display = 'none'; el.textContent = ''; return; }
@@ -3286,10 +3312,13 @@
     if (watchId !== null){ try { navigator.geolocation.clearWatch(watchId); } catch(e){} watchId = null; }
     setGeoStatus('위치 권한을 확인하는 중…');
     lastFixAt = Date.now();
+    gpsRealFixAt = 0;
+    updateGpsStatusButton();
     startGeoWatchdog();
     watchId = navigator.geolocation.watchPosition(function(pos){
       setGeoStatus(null);
       lastFixAt = Date.now();
+      gpsRealFixAt = lastFixAt;
       geoPermissionDenied = false; // 위치가 실제로 잡혔다는 건 권한이 (다시) 허용됐다는 뜻
       var log = logs.find(function(l){ return l.id === activeRoadId; });
       if (!log) return;
@@ -3329,6 +3358,7 @@
       // 똑같이 실패한다 — 워치독이 계속 재시작을 반복하며 상태 메시지만 깜빡이지 않도록 멈춘다.
       if (err && err.code === 1){
         geoPermissionDenied = true;
+        updateGpsStatusButton();
         setGeoStatus('위치 권한이 꺼져 있어요. 기기 설정에서 이 앱(브라우저)의 위치 권한을 켜주세요.');
         return;
       }
@@ -3341,8 +3371,10 @@
       watchId = null;
     }
     stopGeoWatchdog();
+    gpsRealFixAt = 0;
     if (liveMarker){ liveMarker.setMap(null); liveMarker = null; }
     setGeoStatus(null);
+    updateGpsStatusButton();
   }
   // iOS Safari에서는 화면을 껐다 켜거나 다른 앱에 갔다 오면 watchPosition이 콜백을 다시는
   // 호출하지 않고 조용히 죽어버리는 경우가 있다(WebKit 버그). 그러면 앱은 멀쩡히 켜져 있어도
@@ -5388,6 +5420,11 @@
       // 자동으로 트립을 종료해준다(예전에 회사 복귀를 눌러야 했던 것과 같은 효과).
       if (activeTripLog()) endTripReturned(true);
       AppMap.openDayEndKmModal();
+    });
+    document.getElementById('gpsStatusBtn').addEventListener('click', function(){
+      updateGpsStatusButton();
+      var st = gpsState();
+      if (typeof showToast === 'function') showToast(st.dot + ' ' + st.tip); else alert(st.tip);
     });
     document.getElementById('syncStatusBtn').addEventListener('click', function(){
       openTeamCodeModal();
