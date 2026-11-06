@@ -492,6 +492,7 @@
   .trip-mode-btn-break{ background: var(--orange); }
   .trip-mode-btn-lot{ background: #0E9F6E; }
   .trip-mode-btn-park{ background: #7C5CFC; }
+  .trip-mode-btn-fence{ background: #B45309; }
   .trip-mode-btn-leave{ background: var(--gray); }
   .trip-mode-btn.active{ box-shadow: 0 0 0 2px rgba(255,255,255,0.65) inset; }
   /* 주차장 기록/주차 기록 시작 버튼 — 선택 전엔 트립 태그 버튼(특수차량/어린이 등)과 같은 크기로
@@ -502,7 +503,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
-  .trip-mode-btn-lot, .trip-mode-btn-park{
+  .trip-mode-btn-lot, .trip-mode-btn-park, .trip-mode-btn-fence{
     padding: 14px 4px;
     min-height: 68px;
     border-radius: 9px;
@@ -512,7 +513,9 @@
     white-space: normal;
     word-break: keep-all;
   }
-  .trip-mode-btn-lot.active, .trip-mode-btn-park.active{
+  /* 세 번째 버튼(펜스·가드레일·연석)은 2열 그리드에서 한 줄 전체를 쓴다 */
+  .trip-lotpark-grid .trip-mode-btn-fence{ grid-column: 1 / -1; }
+  .trip-mode-btn-lot.active, .trip-mode-btn-park.active, .trip-mode-btn-fence.active{
     grid-column: 1 / -1;
     padding: 16px 8px;
     min-height: 68px;
@@ -1141,8 +1144,8 @@
           <div class="trip-leg-timer" id="tripLegTimer">00:00</div>
           <div class="trip-mode-row">
             <div class="trip-drive-start-grid" id="tripDriveStartGrid">
-              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveNormal">🚗 일반도로<br><small>DRV</small></button>
-              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveHighway">🛣️ 고속도로<br><small>DRV_H</small></button>
+              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveNormal">🚗 일반도로<br><small>DRV_OD</small></button>
+              <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnDriveHighway">🛣️ 고속도로<br><small>DRV_LD</small></button>
             </div>
             <button type="button" class="trip-mode-btn trip-mode-btn-drive" id="btnTripDriveToggle">🚗 주행 기록 시작</button>
             <button type="button" class="trip-mode-btn trip-mode-btn-break" id="btnTripBreak" style="display:none;">☕ 휴식 시작</button>
@@ -1164,6 +1167,7 @@
             <div class="trip-lotpark-grid">
               <button type="button" class="trip-mode-btn trip-mode-btn-lot" id="btnLotRecord">🅿️ 주차장 기록 시작</button>
               <button type="button" class="trip-mode-btn trip-mode-btn-park" id="btnParkRecord">🚙 주차 기록 시작</button>
+              <button type="button" class="trip-mode-btn trip-mode-btn-fence" id="btnFenceRecord">🚧 펜스·가드레일·연석 기록 시작</button>
             </div>
             <button type="button" class="trip-mode-btn trip-mode-btn-leave" id="btnTripLeaveLot" style="display:none;">🚪 주차장에서 나옴 (다음 장소로 이동 시작)</button>
           </div>
@@ -1334,16 +1338,17 @@
 
   // ---- 일일 리포트(엑셀) 관련 매핑 ----
   // 시나리오: 일반도로 로깅은 "주행", 주차장/주차 로깅은 모두 "주차"로 합쳐서 표기
-  var LOG_SCENARIO = { road: '주행', parking_lot: '주차', parking: '주차', parking_scene: '주차' };
+  var LOG_SCENARIO = { road: '주행', parking_lot: '주차', parking: '주차', parking_fence: '주차', parking_scene: '주차' };
   // 목표 대상: 로깅 유형별 고정 문구 (실제 SPECIAL/아이 버튼 기록 횟수는 별도 컬럼에 표기)
   var LOG_TARGET = {
     road: '특수차량 / 어린이 / PM',
     parking_lot: '특이입구점 / 어린이',
     parking: '특이입구점 / 어린이',
+    parking_fence: '특이입구점 / 어린이',
     parking_scene: '특이입구점 / 어린이'
   };
   // 비고: 주차장 로깅(주행하며 스캔) vs 주차 로깅(정차해서 스캔) 구분용. 일반도로는 비워둠.
-  var LOG_REMARK = { parking_lot: '주차장 주행 로깅', parking: '주차장 주차 로깅' };
+  var LOG_REMARK = { parking_lot: '주차장 주행 로깅', parking: '주차장 주차 로깅', parking_fence: '주차장 펜스·가드레일·연석 로깅' };
 
   // ---- 여러 폰 간 로깅 기록/장소 체크리스트 실시간 공유 (Firebase Firestore) ----
   // 로깅 기록(logs)과 장소 체크리스트(spots) 둘 다 공유된다.
@@ -1574,6 +1579,7 @@
           if (leg.lotMode === undefined) leg.lotMode = null;
           if (leg.lotSegments === undefined) leg.lotSegments = [];
           if (leg.parkSegments === undefined) leg.parkSegments = [];
+          if (leg.fenceSegments === undefined) leg.fenceSegments = [];
           if (leg.address === undefined) leg.address = '';
         });
       }
@@ -1609,7 +1615,7 @@
     (log.events || []).forEach(function(e){ up(e.time); });
     (log.legs || []).forEach(function(lg){
       up(lg.startTime); up(lg.endTime); up(lg.arrivedTime);
-      [lg.lotSegments, lg.parkSegments].forEach(function(segs){ (segs || []).forEach(function(sg){ up(sg.start); up(sg.end); }); });
+      legAllModeSegs(lg).forEach(function(segs){ (segs || []).forEach(function(sg){ up(sg.start); up(sg.end); }); });
     });
     return t;
   }
@@ -1618,7 +1624,7 @@
       (segs || []).forEach(function(seg){ if (seg.end === null || seg.end === undefined) seg.end = endTime; });
     });
     (log.legs || []).forEach(function(lg){
-      [lg.lotSegments, lg.parkSegments].forEach(function(segs){
+      legAllModeSegs(lg).forEach(function(segs){
         (segs || []).forEach(function(seg){ if (seg.end === null || seg.end === undefined) seg.end = endTime; });
       });
       lg.lotMode = null;
@@ -2595,9 +2601,10 @@
       // 건 "주차장에서 나옴" 버튼을 눌렀을 때(advanceTripLeg)다.
       arrived: false,
       arrivedTime: null,
-      lotMode: null,   // null | 'lot'(주차장 기록) | 'park'(주차 기록) — 서로 배타적
+      lotMode: null,   // null | 'lot'(주차장 기록) | 'park'(주차 기록) | 'fence'(펜스·가드레일·연석 기록) — 서로 배타적
       lotSegments: [], // 주차장 기록(로깅) 구간들 {start,end}
-      parkSegments: [] // 주차 기록 구간들 {start,end}
+      parkSegments: [], // 주차 기록 구간들 {start,end}
+      fenceSegments: [] // 펜스·가드레일·연석 기록 구간들 {start,end}
     };
   }
   function startTrip(opts){
@@ -2623,89 +2630,70 @@
     pushLogStateToCloud(log);
     renderLogPanel();
   }
-  // ---- 기록 코드 선택 (주행 DRV/DRV_H, 주차장 PRK_재질, 주차 PRK_재질_유형) ----
-  // 화면 버튼은 한글, 화면 뱃지와 엑셀 비고_2에는 영문 코드로만 표시/저장한다.
-  var FLOOR_OPTS = [ { ko: '벽돌', code: 'BRICK' }, { ko: '아스팔트', code: 'ASPHALT' }, { ko: '콘크리트', code: 'CONCRETE' }, { ko: '우레탄', code: 'URETHANE' }, { ko: '잔디', code: 'GRASS' }, { ko: '기타', code: 'ETC' } ];
-  var PARK_TYPE_OPTS = [ { ko: '직각', code: 'PERPEND' }, { ko: '평행', code: 'PARALLEL' }, { ko: '사선', code: 'DIAGNAL' }, { ko: '계단식', code: 'STAIR' } ];
-  var DRIVE_OPTS = [ { ko: '일반도로', code: 'DRV' }, { ko: '고속도로', code: 'DRV_H' } ];
+  // ---- 기록 코드 ----
+  // 주행: 일반도로 DRV_OD / 고속도로 DRV_LD (도로 종류 버튼으로 고름)
+  // 도착 후: 주차장 PRK_OD / 주차 PRK_OD_PSD / 펜스·가드레일·연석 PRK_OD_PSD_FD (종류별 고정 코드, 선택 없음)
+  // 화면 뱃지와 엑셀 비고_2에는 영문 코드로 표시/저장한다.
+  var DRIVE_OPTS = [ { ko: '일반도로', code: 'DRV_OD' }, { ko: '고속도로', code: 'DRV_LD' } ];
+  // 예전 코드로 저장된 기록도 화면/엑셀에선 새 코드로 보이게 하는 매핑
+  var LEGACY_DRIVE_CODE = { DRV: 'DRV_OD', DRV_H: 'DRV_LD' };
+  // 도착한 목적지(leg) 안에서 켜는 기록 종류 — 이 표 하나만 고치면 버튼/타이머/기록목록/엑셀이 같이 바뀐다.
+  var LOT_MODES = {
+    lot:   { segKey: 'lotSegments',   code: 'PRK_OD',        icon: '🅿️', label: '주차장 기록',            chip: '주차장 기록',  status: '주차장 내 로깅 중',            reportType: 'parking_lot' },
+    park:  { segKey: 'parkSegments',  code: 'PRK_OD_PSD',    icon: '🚙', label: '주차 기록',              chip: '주차 기록',    status: '주차장 내 주차 로깅 중',       reportType: 'parking' },
+    fence: { segKey: 'fenceSegments', code: 'PRK_OD_PSD_FD', icon: '🚧', label: '펜스·가드레일·연석 기록', chip: '펜스·가드레일·연석', status: '펜스·가드레일·연석 로깅 중', reportType: 'parking_fence' }
+  };
+  var LOT_MODE_KEYS = ['lot', 'park', 'fence'];
+  // leg의 해당 기록 종류 구간 배열(없으면 만들어서 돌려줌)
+  function legModeSegs(leg, mode){
+    var m = LOT_MODES[mode];
+    if (!leg || !m) return null;
+    return leg[m.segKey] || (leg[m.segKey] = []);
+  }
+  // leg의 모든 기록 종류 구간 배열 목록(읽기 전용 용도)
+  function legAllModeSegs(leg){
+    return LOT_MODE_KEYS.map(function(k){ return (leg && leg[LOT_MODES[k].segKey]) || []; });
+  }
+  // 화면 표시/엑셀용 코드: 도착 후 기록은 종류별 고정 코드, 주행은 예전 코드를 새 코드로 바꿔서 돌려준다.
+  function normalizeRecordCode(kind, code){
+    if (LOT_MODES[kind]) return LOT_MODES[kind].code;
+    if (kind === 'drive') return LEGACY_DRIVE_CODE[code] || code || '';
+    return code || '';
+  }
   var codeEditCtx = null;
+  // 코드 수정은 주행 기록(일반도로/고속도로)만 해당 — 도착 후 기록은 종류별 코드가 고정이다.
   function renderCodeEditModal(){
     var c = codeEditCtx; if (!c) return;
     var log = logs.find(function(l){ return l.id === c.logId; });
     var arr = log && resolveRecordArray(log, c.kind, c.legId);
     var target = arr && arr[c.refIndex];
     if (!target) return;
-    var cur = target.code || '';
-    function grid(opts, group, selCode){
-      return '<div class="code-edit-grid">' + opts.map(function(o){
-        return '<button type="button" class="' + (o.code === selCode ? 'sel' : '') + '" onclick="AppMap.pickEditCode(\'' + group + '\',\'' + o.code + '\')">' + o.ko + '</button>';
-      }).join('') + '</div>';
-    }
-    var body;
-    if (c.kind === 'drive') body = grid(DRIVE_OPTS, 'drive', cur);
-    else if (c.kind === 'lot') body = grid(FLOOR_OPTS, 'floor', cur.replace(/^PRK_/, ''));
-    else body = '<div class="code-edit-title">바닥면 재질</div>' + grid(FLOOR_OPTS, 'floor', c.st.floor) +
-                '<div class="code-edit-title">주차 유형</div>' + grid(PARK_TYPE_OPTS, 'ptype', c.st.ptype);
+    var cur = normalizeRecordCode('drive', target.code);
+    var body = '<div class="code-edit-grid">' + DRIVE_OPTS.map(function(o){
+      return '<button type="button" class="' + (o.code === cur ? 'sel' : '') + '" onclick="AppMap.pickEditCode(\'drive\',\'' + o.code + '\')">' + o.ko + '</button>';
+    }).join('') + '</div>';
     openModal('<h3>코드 수정</h3><div class="code-edit-title">현재: ' + escapeHtml(cur || '(없음)') + '</div>' + body +
       '<div class="popup-actions"><button class="btn-secondary" onclick="AppMap.cancelModal()">닫기</button></div>');
   }
-  var tripPicker = null; // null | { kind: 'drive'|'lot'|'park', floor: code|null, ptype: code|null }
-  function openTripPicker(kind){
-    if (tripPicker && tripPicker.kind === kind){ tripPicker = null; }
-    else { tripPicker = { kind: kind, floor: null, ptype: null }; }
-    var log = activeTripLog();
-    if (log) renderTripPanel(log);
-  }
-  function pickTripCode(kind, group, code){
-    if (!tripPicker || tripPicker.kind !== kind) return;
-    if (kind === 'drive'){ setTripMode('drive', code); return; }
-    if (kind === 'lot'){ setLegLotMode('lot', 'PRK_' + code); return; }
-    if (group === 'floor') tripPicker.floor = code; else tripPicker.ptype = code;
-    if (tripPicker.floor && tripPicker.ptype){
-      setLegLotMode('park', 'PRK_' + tripPicker.floor + '_' + tripPicker.ptype);
-      return;
-    }
-    var log = activeTripLog();
-    if (log) renderTripPanel(log);
-  }
+  // 예전엔 주차장/주차 기록 시작 시 바닥면 재질·주차 유형을 고르는 선택창이 있었지만, 이제는 코드가
+  // 고정이라 선택창 없이 바로 시작한다. 다른 곳에서 참조하므로 상태 변수와 렌더 함수는 남겨둔다.
+  var tripPicker = null;
   function renderTripPicker(){
     var el = document.getElementById('tripPicker');
     if (!el) return;
-    if (!tripPicker){ el.style.display = 'none'; el.innerHTML = ''; return; }
-    function grid(opts, group){
-      return '<div class="trip-tag-grid">' + opts.map(function(o){
-        var sel = (group === 'floor' && tripPicker.floor === o.code) || (group === 'ptype' && tripPicker.ptype === o.code);
-        return '<button type="button" class="trip-tag-btn' + (sel ? ' sel' : '') + '" data-group="' + group + '" data-code="' + o.code + '">' + o.ko + '</button>';
-      }).join('') + '</div>';
-    }
-    var html = '';
-    if (tripPicker.kind === 'drive') html = '<div class="trip-picker-title">도로 종류를 선택하면 주행 기록이 시작돼요</div>' + grid(DRIVE_OPTS, 'drive');
-    else if (tripPicker.kind === 'lot') html = '<div class="trip-picker-title">바닥면 재질을 선택하면 주차장 기록이 시작돼요</div>' + grid(FLOOR_OPTS, 'floor');
-    else html = '<div class="trip-picker-title">바닥면 재질</div>' + grid(FLOOR_OPTS, 'floor') + '<div class="trip-picker-title">주차 유형 (둘 다 고르면 시작돼요)</div>' + grid(PARK_TYPE_OPTS, 'ptype');
-    html += '<button type="button" class="trip-picker-cancel" data-cancel="1">취소</button>';
-    el.innerHTML = html;
-    el.style.display = 'block';
-    var kind = tripPicker.kind;
-    Array.prototype.forEach.call(el.querySelectorAll('.trip-tag-btn'), function(b){
-      b.addEventListener('click', function(){ pickTripCode(kind, b.getAttribute('data-group'), b.getAttribute('data-code')); });
-    });
-    var c = el.querySelector('[data-cancel]');
-    if (c) c.addEventListener('click', function(){ tripPicker = null; var lg = activeTripLog(); if (lg) renderTripPanel(lg); });
+    el.style.display = 'none'; el.innerHTML = '';
   }
   // 목적지와 시간 사이에 지금 선택된 코드를 표시한다(기록 중이면 그 구간의 코드, 선택 중이면 지금까지 고른 값).
   function currentTripCodeText(log){
     var leg = currentLeg(log);
-    if (tripPicker && tripPicker.kind === 'park'){
-      return 'PRK_' + (tripPicker.floor || '?') + '_' + (tripPicker.ptype || '?');
-    }
     if (leg && leg.arrived && leg.lotMode){
-      var segs = leg.lotMode === 'lot' ? leg.lotSegments : leg.parkSegments;
+      var segs = legModeSegs(leg, leg.lotMode);
       var open = (segs && segs.length) ? segs[segs.length - 1] : null;
-      return (open && open.end === null && open.code) ? open.code : '';
+      return (open && open.end === null) ? normalizeRecordCode(leg.lotMode, open.code) : '';
     }
     if (log.mode === 'drive' && log.driveSegments && log.driveSegments.length){
       var d = log.driveSegments[log.driveSegments.length - 1];
-      return (d.end === null && d.code) ? d.code : '';
+      return (d.end === null && d.code) ? normalizeRecordCode('drive', d.code) : '';
     }
     return '';
   }
@@ -2762,12 +2750,10 @@
   // (주차장에서 나오거나 트립을 끝낼 때, 기록 정지를 깜빡 안 눌러도 구간이 열린 채로 안 남게)
   function closeLegLotSegment(leg, endTime){
     if (!leg) return;
-    if (leg.lotMode === 'lot' && leg.lotSegments && leg.lotSegments.length){
-      var openLot = leg.lotSegments[leg.lotSegments.length - 1];
-      if (openLot.end === null) openLot.end = endTime;
-    } else if (leg.lotMode === 'park' && leg.parkSegments && leg.parkSegments.length){
-      var openPark = leg.parkSegments[leg.parkSegments.length - 1];
-      if (openPark.end === null) openPark.end = endTime;
+    var segs = leg.lotMode ? legModeSegs(leg, leg.lotMode) : null;
+    if (segs && segs.length){
+      var open = segs[segs.length - 1];
+      if (open.end === null) open.end = endTime;
     }
     leg.lotMode = null;
   }
@@ -2790,19 +2776,16 @@
   }
   // 주차장 기록(주차장 내 로깅) / 주차 기록(주차장 내 주차 로깅) 시작·정지 — 휴식과 마찬가지로
   // 서로 배타적이며, 트립 전체의 휴식(setTripMode('rest'))과도 동시에 켜지지 않는다.
-  function setLegLotMode(mode, code){ // mode: null | 'lot' | 'park'
+  function setLegLotMode(mode){ // mode: null | 'lot' | 'park' | 'fence' — 코드는 LOT_MODES에서 고정
     tripPicker = null;
     var log = activeTripLog();
     if (!log) return;
     var leg = currentLeg(log);
     if (!leg || !leg.arrived || leg.lotMode === mode) return;
     var now = Date.now();
-    if (!leg.lotSegments) leg.lotSegments = [];
-    if (!leg.parkSegments) leg.parkSegments = [];
     closeLegLotSegment(leg, now); // 이전에 열려 있던 구간 닫기
     if (log.mode === 'rest') setTripMode('stopped'); // 휴식 중이었다면 기록 시작과 함께 휴식 종료
-    if (mode === 'lot') leg.lotSegments.push({ start: now, end: null, code: code || '' });
-    if (mode === 'park') leg.parkSegments.push({ start: now, end: null, code: code || '' });
+    if (mode && LOT_MODES[mode]) legModeSegs(leg, mode).push({ start: now, end: null, code: LOT_MODES[mode].code });
     leg.lotMode = mode;
     saveLogs();
     pushLogStateToCloud(log);
@@ -2923,16 +2906,16 @@
         breakBtn.textContent = isResting ? '🏁 휴식 종료' : '☕ 휴식 시작';
         breakBtn.classList.toggle('active', isResting);
       }
-      if (btnLotRecord){
-        btnLotRecord.style.display = (!isResting && leg.lotMode !== 'park') ? '' : 'none';
-        btnLotRecord.textContent = leg.lotMode === 'lot' ? '⏹ 주차장 기록 정지' : '🅿️ 주차장 기록 시작';
-        btnLotRecord.classList.toggle('active', leg.lotMode === 'lot');
-      }
-      if (btnParkRecord){
-        btnParkRecord.style.display = (!isResting && leg.lotMode !== 'lot') ? '' : 'none';
-        btnParkRecord.textContent = leg.lotMode === 'park' ? '⏹ 주차 기록 정지' : '🚙 주차 기록 시작';
-        btnParkRecord.classList.toggle('active', leg.lotMode === 'park');
-      }
+      // 주차장/주차/펜스·가드레일·연석 기록 버튼: 하나가 켜져 있으면 그 버튼만 "정지"로 남고 나머지는 숨긴다.
+      var modeBtns = { lot: btnLotRecord, park: btnParkRecord, fence: document.getElementById('btnFenceRecord') };
+      LOT_MODE_KEYS.forEach(function(k){
+        var b = modeBtns[k];
+        if (!b) return;
+        var on = leg.lotMode === k;
+        b.style.display = (!isResting && (!leg.lotMode || on)) ? '' : 'none';
+        b.textContent = on ? ('⏹ ' + LOT_MODES[k].label + ' 정지') : (LOT_MODES[k].icon + ' ' + LOT_MODES[k].label + ' 시작');
+        b.classList.toggle('active', on);
+      });
     }
     // leg가 바뀐 시점에만 메모/체크박스를 다시 채운다 — 매초 렌더링될 때마다 덮어쓰면
     // 사용자가 타이핑/체크하는 도중 값이 계속 되돌아가 버리는 문제가 생기기 때문.
@@ -2986,14 +2969,14 @@
       el.style.display = 'none';
       return;
     }
-    var segs = leg.lotMode === 'lot' ? leg.lotSegments : leg.parkSegments;
+    var segs = legModeSegs(leg, leg.lotMode);
     var open = (segs && segs.length) ? segs[segs.length - 1] : null;
     if (!open || open.end !== null){
       el.style.display = 'none';
       return;
     }
-    var icon = leg.lotMode === 'lot' ? '🅿️' : '🚙';
-    var label = leg.lotMode === 'lot' ? '주차장 기록' : '주차 기록';
+    var icon = LOT_MODES[leg.lotMode].icon;
+    var label = LOT_MODES[leg.lotMode].label;
     el.style.display = '';
     el.textContent = icon + ' ' + formatHM(open.start) + '부터 ' + formatDuration(Date.now() - open.start) + '째 ' + label + ' 중';
   }
@@ -3513,8 +3496,7 @@
       var curLeg = currentLeg(trip);
       if (curLeg && curLeg.arrived){
         text.textContent = trip.mode === 'rest' ? '휴식 중'
-          : curLeg.lotMode === 'lot' ? '주차장 내 로깅 중'
-          : curLeg.lotMode === 'park' ? '주차장 내 주차 로깅 중'
+          : (curLeg.lotMode && LOT_MODES[curLeg.lotMode]) ? LOT_MODES[curLeg.lotMode].status
           : '주차장 도착 · 대기 중';
       } else {
         text.textContent = trip.mode === 'drive' ? '주차 탐색 이동 중'
@@ -3632,7 +3614,7 @@
     if (isTrip){
       var curLegForTimer = currentLeg(log);
       if (curLegForTimer && curLegForTimer.arrived && curLegForTimer.lotMode){
-        var lotSegsForTimer = curLegForTimer.lotMode === 'lot' ? curLegForTimer.lotSegments : curLegForTimer.parkSegments;
+        var lotSegsForTimer = legModeSegs(curLegForTimer, curLegForTimer.lotMode);
         var openLotSeg = (lotSegsForTimer && lotSegsForTimer.length) ? lotSegsForTimer[lotSegsForTimer.length - 1] : null;
         elapsed = (openLotSeg && (openLotSeg.end === null || openLotSeg.end === undefined)) ? (Date.now() - openLotSeg.start) : 0;
       } else {
@@ -3661,7 +3643,7 @@
     if (trip.mode === 'drive') return currentDriveSegmentMs(trip);
     var leg = currentLeg(trip);
     if (leg && leg.arrived && leg.lotMode){
-      var segs = leg.lotMode === 'lot' ? leg.lotSegments : leg.parkSegments;
+      var segs = legModeSegs(leg, leg.lotMode);
       var open = (segs && segs.length) ? segs[segs.length - 1] : null;
       if (open && open.end === null) return Date.now() - open.start;
     }
@@ -3819,7 +3801,6 @@
     }
     return log.legs[log.legs.length - 1];
   }
-  var SEGMENT_MIN_DURATION_MS = 60 * 1000;   // 1분이 안 되는 구간은 리포트에서 뺌(끊어 찍은 잡음성 구간)
   // 도로 환경(고속도로/일반도로)은 이제 트립 시작할 때 고른 고정값이 아니라, 그 구간에서 실제로
   // 인식된 도로명에 "고속도로"가 들어있는지로 구간별로 판단한다. 인식된 도로명이 아예 없을 때만
   // (예: 역지오코딩 실패) 트립 시작 시 고른 값으로 되돌아간다.
@@ -3849,16 +3830,17 @@
       } else {
         // 트립 안에서 "주행 기록 시작~정지"를 여러 번 오간 경우, 실제로 껐다 켠 구간 하나하나를
         // 각각 별도 줄로 낸다(뭉뚱그리지 않음) — 앱 안의 주행 상세 기록과 동일하게, 실제로 주행한
-        // 시간만큼만 "취득 시간"에 반영되도록. 1분이 안 되는 짧은 구간은 아예 제외한다.
+        // 시간만큼만 "취득 시간"에 반영되도록. 짧은 구간(1분 미만)도 빼지 않고 모두 낸다.
         var resolvedSegs = driveSegs.map(function(seg){
           return { start: seg.start, code: seg.code || '', end: (seg.end === null || seg.end === undefined) ? l.endTime : seg.end };
-        }).filter(function(seg){ return (seg.end - seg.start) >= SEGMENT_MIN_DURATION_MS; });
+        });
 
         if (!resolvedSegs.length){
           // 전부 너무 짧은 구간뿐이었다면(드문 예외) 그래도 트립 자체가 리포트에서 통째로 빠지지
           // 않도록 전체를 한 줄로 남긴다.
           var fallbackRoadNames = roadNamesForWindow(l, l.startTime, l.endTime);
-          pending.push({ start: l.startTime, args: [l, l.startTime, l.endTime, isRoad, envForRoadNames(l, fallbackRoadNames), fallbackRoadNames, null, undefined, (driveSegs[0] && driveSegs[0].code) || ''] });
+          var fbCode = normalizeRecordCode('drive', driveSegs[0] && driveSegs[0].code);
+          pending.push({ start: l.startTime, args: [l, l.startTime, l.endTime, isRoad, fbCode === 'DRV_LD' ? '고속도로' : envForRoadNames(l, fallbackRoadNames), fallbackRoadNames, null, undefined, fbCode] });
         } else {
           var groups = resolvedSegs.map(function(seg){
             return { leg: legForTimestamp(l, seg.start), start: seg.start, end: seg.end, code: seg.code };
@@ -3872,7 +3854,10 @@
             var toLabel = (g.leg && g.leg.destination) ? g.leg.destination : '목적지 미입력';
             var location = '이동 (' + fromLabel + ' → ' + toLabel + ')';
             var roadNames = roadNamesForWindow(l, g.start, g.end);
-            pending.push({ start: g.start, args: [l, g.start, g.end, isRoad, envForRoadNames(l, roadNames), roadNames, location, undefined, g.code || ''] });
+            var gCode = normalizeRecordCode('drive', g.code);
+            // 환경: 고속도로 버튼(DRV_LD)으로 기록한 구간은 GPS 도로명 인식과 상관없이 '고속도로'로 표기
+            var gEnv = gCode === 'DRV_LD' ? '고속도로' : envForRoadNames(l, roadNames);
+            pending.push({ start: g.start, args: [l, g.start, g.end, isRoad, gEnv, roadNames, location, undefined, gCode] });
           });
         }
       }
@@ -3881,13 +3866,12 @@
       // 없으면 트립 안에서 주차장/주차 로깅한 내용이 리포트에서 통째로 빠지게 된다. 시나리오/비고는
       // 기존 단독 주차장/주차 로깅과 똑같은 문구(LOG_SCENARIO/LOG_REMARK)를 그대로 쓴다.
       (l.legs || []).forEach(function(leg){
-        (leg.lotSegments || []).forEach(function(seg){
-          var segEnd = (seg.end === null || seg.end === undefined) ? l.endTime : seg.end;
-          pending.push({ start: seg.start, args: [l, seg.start, segEnd, false, '주차장', leg.address || '', leg.destination || '', 'parking_lot', seg.code || ''] });
-        });
-        (leg.parkSegments || []).forEach(function(seg){
-          var segEnd = (seg.end === null || seg.end === undefined) ? l.endTime : seg.end;
-          pending.push({ start: seg.start, args: [l, seg.start, segEnd, false, '주차장', leg.address || '', leg.destination || '', 'parking', seg.code || ''] });
+        LOT_MODE_KEYS.forEach(function(k){
+          var m = LOT_MODES[k];
+          (leg[m.segKey] || []).forEach(function(seg){
+            var segEnd = (seg.end === null || seg.end === undefined) ? l.endTime : seg.end;
+            pending.push({ start: seg.start, args: [l, seg.start, segEnd, false, '주차장', leg.address || '', leg.destination || '', m.reportType, m.code] });
+          });
         });
       });
 
@@ -3940,7 +3924,9 @@
       var a = document.createElement('a');
       a.href = url; a.download = fileName;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      // 2초 만에 URL을 해제하면, 브라우저가 "저장 위치 묻기"를 켜둔 경우 사용자가 위치를 고르는 사이
+      // 파일 내용이 사라져 다운로드가 중간에 실패하고 임시 파일만 남을 수 있다 — 넉넉히 1분 뒤에 해제.
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
       showToast('리포트 파일을 다운로드했어요. 다운로드 폴더에서 열어보세요.');
     }
   }
@@ -4099,8 +4085,7 @@
     if (kind === 'event') return log.events || (log.events = []);
     var leg = (log.legs || []).find(function(lg){ return lg.id === legId; });
     if (!leg) return null;
-    if (kind === 'lot') return leg.lotSegments || (leg.lotSegments = []);
-    if (kind === 'park') return leg.parkSegments || (leg.parkSegments = []);
+    if (LOT_MODES[kind]) return legModeSegs(leg, kind);
     return null;
   }
   // 이 leg(목적지) 시간대에 걸리는 주행/휴식/주차장/주차 구간과 SPECIAL/아이 이벤트를 전부 모아
@@ -4114,11 +4099,10 @@
     (log.restSegments || []).forEach(function(seg, i){
       if (legForTimestamp(log, seg.start) === leg) items.push({ kind: 'rest', refIndex: i, data: seg, time: seg.start });
     });
-    (leg.lotSegments || []).forEach(function(seg, i){
-      items.push({ kind: 'lot', refIndex: i, data: seg, time: seg.start });
-    });
-    (leg.parkSegments || []).forEach(function(seg, i){
-      items.push({ kind: 'park', refIndex: i, data: seg, time: seg.start });
+    LOT_MODE_KEYS.forEach(function(k){
+      (leg[LOT_MODES[k].segKey] || []).forEach(function(seg, i){
+        items.push({ kind: k, refIndex: i, data: seg, time: seg.start });
+      });
     });
     (log.events || []).forEach(function(e, i){
       if (legForTimestamp(log, e.time) === leg) items.push({ kind: 'event', refIndex: i, data: e, time: e.time });
@@ -4129,8 +4113,9 @@
   var LEG_RECORD_META = {
     drive: { icon: '🚗', label: '주행 기록' },
     rest:  { icon: '☕', label: '휴식' },
-    lot:   { icon: '🅿️', label: '주차장 기록' },
-    park:  { icon: '🚙', label: '주차 기록' }
+    lot:   { icon: LOT_MODES.lot.icon,   label: LOT_MODES.lot.label },
+    park:  { icon: LOT_MODES.park.icon,  label: LOT_MODES.park.label },
+    fence: { icon: LOT_MODES.fence.icon, label: LOT_MODES.fence.label }
   };
   function renderLegRecordRow(logId, legId, r){
     var icon, label, timeText, chipHtml = '';
@@ -4141,8 +4126,12 @@
     } else {
       var m = LEG_RECORD_META[r.kind];
       icon = m.icon; label = m.label;
-      if (r.kind === 'drive' || r.kind === 'lot' || r.kind === 'park'){
-        chipHtml = '<button type="button" class="legcard-code-chip' + (r.data.code ? '' : ' empty') + '" onclick="AppMap.openCodeEdit(\'' + logId + '\',\'' + r.kind + '\',' + r.refIndex + ',\'' + legId + '\')">' + (r.data.code ? escapeHtml(r.data.code) + ' ✎' : '코드 선택 ✎') + '</button>';
+      if (r.kind === 'drive'){
+        var dcode = normalizeRecordCode('drive', r.data.code);
+        chipHtml = '<button type="button" class="legcard-code-chip' + (dcode ? '' : ' empty') + '" onclick="AppMap.openCodeEdit(\'' + logId + '\',\'' + r.kind + '\',' + r.refIndex + ',\'' + legId + '\')">' + (dcode ? escapeHtml(dcode) + ' ✎' : '코드 선택 ✎') + '</button>';
+      } else if (LOT_MODES[r.kind]){
+        // 도착 후 기록은 코드가 종류별로 고정이라 수정 버튼 없이 표시만 한다
+        chipHtml = '<span class="legcard-code-chip">' + escapeHtml(LOT_MODES[r.kind].code) + '</span>';
       }
       var endMs = (r.data.end === null || r.data.end === undefined) ? null : r.data.end;
       var endText = endMs === null ? '진행 중' : formatTimeHMS(endMs);
@@ -4210,12 +4199,13 @@
     }
     var drive = sumSegs(log.driveSegments);
     var rest = sumSegs(log.restSegments);
-    var lotSegs = [], parkSegs = [];
+    var lotSegs = [], parkSegs = [], fenceSegs = [];
     (log.legs || []).forEach(function(leg){
       (leg.lotSegments || []).forEach(function(sg){ lotSegs.push(sg); });
       (leg.parkSegments || []).forEach(function(sg){ parkSegs.push(sg); });
+      (leg.fenceSegments || []).forEach(function(sg){ fenceSegs.push(sg); });
     });
-    var lot = sumSegs(lotSegs), park = sumSegs(parkSegs);
+    var lot = sumSegs(lotSegs), park = sumSegs(parkSegs), fence = sumSegs(fenceSegs);
     var specialN = 0, childN = 0;
     (log.events || []).forEach(function(e){
       if (e.type === 'special') specialN++;
@@ -4223,11 +4213,11 @@
     });
     return {
       // 기록 건수는 주행 / 주차장 기록 / 주차 기록 구간만 센다(휴식, 특이사항 버튼은 제외)
-      count: drive.n + lot.n + park.n,
-      driveN: drive.n, lotN: lot.n, parkN: park.n,
+      count: drive.n + lot.n + park.n + fence.n,
+      driveN: drive.n, lotN: lot.n, parkN: park.n, fenceN: fence.n,
       specialN: specialN, childN: childN,
-      driveMs: drive.ms, lotMs: lot.ms, parkMs: park.ms,
-      totalMs: drive.ms + lot.ms + park.ms
+      driveMs: drive.ms, lotMs: lot.ms, parkMs: park.ms, fenceMs: fence.ms,
+      totalMs: drive.ms + lot.ms + park.ms + fence.ms
     };
   }
   function renderTripCard(log){
@@ -4250,6 +4240,7 @@
           '<span class="legcard-sum-chip">🚗 주행 ' + sum.driveN + '건 · ' + formatDuration(sum.driveMs) + '</span>' +
           '<span class="legcard-sum-chip">🅿️ 주차장 기록 ' + sum.lotN + '건 · ' + formatDuration(sum.lotMs) + '</span>' +
           '<span class="legcard-sum-chip">🚙 주차 기록 ' + sum.parkN + '건 · ' + formatDuration(sum.parkMs) + '</span>' +
+          '<span class="legcard-sum-chip">🚧 펜스·가드레일·연석 ' + sum.fenceN + '건 · ' + formatDuration(sum.fenceMs) + '</span>' +
         '</div>' +
         '<div class="legcard-sum-chips legcard-sum-events">' +
           '<span class="legcard-sum-chip event-special">⚠ 특수차량 ' + sum.specialN + '회</span>' +
@@ -4442,7 +4433,7 @@
         (segs || []).forEach(function(seg){ if (seg.end === null || seg.end === undefined) seg.end = log.endTime; });
       });
       (log.legs || []).forEach(function(lg){
-        [lg.lotSegments, lg.parkSegments].forEach(function(segs){
+        legAllModeSegs(lg).forEach(function(segs){
           (segs || []).forEach(function(seg){ if (seg.end === null || seg.end === undefined) seg.end = log.endTime; });
         });
         lg.lotMode = null;
@@ -4543,6 +4534,7 @@
           '<button type="button" class="env-toggle-btn" data-rt="rest">☕ 휴식</button>' +
           '<button type="button" class="env-toggle-btn" data-rt="lot">🅿️ 주차장</button>' +
           '<button type="button" class="env-toggle-btn" data-rt="park">🚙 주차</button>' +
+          '<button type="button" class="env-toggle-btn" data-rt="fence">🚧 펜스·가드레일·연석</button>' +
         '</div>' +
         '<label class="modal-field-label">시작</label>' +
         '<input type="datetime-local" step="1" id="addRecordStart" />' +
@@ -4575,6 +4567,7 @@
       if (!start){ showToast('시작 시각을 입력해주세요.'); return; }
       if (end !== null && end <= start){ showToast('종료 시각이 시작 시각보다 늦어야 해요.'); return; }
       var seg = { start: start, end: end };
+      if (LOT_MODES[addRecordTypeChoice]) seg.code = LOT_MODES[addRecordTypeChoice].code;
       var arr = resolveRecordArray(log, addRecordTypeChoice, legId);
       if (!arr) return;
       arr.push(seg);
@@ -4627,42 +4620,25 @@
       renderLogPanel();
       renderLogList();
     },
-    // 로깅 기록에서 코드(DRV/DRV_H, PRK_재질, PRK_재질_유형)를 버튼 한두 번으로 바로 고친다.
+    // 로깅 기록에서 주행 코드(DRV_OD/DRV_LD)를 버튼 한 번으로 바로 고친다. 도착 후 기록 코드는 고정.
     openCodeEdit: function(logId, kind, refIndex, legId){
+      if (kind !== 'drive') return;
       var log = logs.find(function(l){ return l.id === logId; });
       if (!log) return;
       var arr = resolveRecordArray(log, kind, legId);
-      var target = arr && arr[refIndex];
-      if (!target) return;
-      var parts = (target.code || '').split('_');
-      var st = { floor: null, ptype: null };
-      if (kind === 'park'){
-        if (FLOOR_OPTS.some(function(o){ return o.code === parts[1]; })) st.floor = parts[1];
-        if (PARK_TYPE_OPTS.some(function(o){ return o.code === parts[2]; })) st.ptype = parts[2];
-      }
-      codeEditCtx = { logId: logId, kind: kind, refIndex: refIndex, legId: legId, st: st };
+      if (!arr || !arr[refIndex]) return;
+      codeEditCtx = { logId: logId, kind: kind, refIndex: refIndex, legId: legId };
       renderCodeEditModal();
     },
     pickEditCode: function(group, code){
-      var c = codeEditCtx; if (!c) return;
+      var c = codeEditCtx; if (!c || c.kind !== 'drive') return;
       var log = logs.find(function(l){ return l.id === c.logId; });
       var arr = log && resolveRecordArray(log, c.kind, c.legId);
       var target = arr && arr[c.refIndex];
       if (!target) return;
-      var done = false;
-      if (c.kind === 'drive'){ target.code = code; done = true; }
-      else if (c.kind === 'lot'){ target.code = 'PRK_' + code; done = true; }
-      else {
-        if (group === 'floor') c.st.floor = code; else c.st.ptype = code;
-        if (c.st.floor && c.st.ptype){ target.code = 'PRK_' + c.st.floor + '_' + c.st.ptype; done = true; }
-      }
-      if (done){
-        saveLogs(); pushLogStateToCloud(log); renderLogPanel(); renderLogList();
-        if (c.kind === 'park'){ renderCodeEditModal(); return; }
-        closeModal();
-        return;
-      }
-      renderCodeEditModal();
+      target.code = code;
+      saveLogs(); pushLogStateToCloud(log); renderLogPanel(); renderLogList();
+      closeModal();
     },
     openEditRecordModal: function(logId, kind, refIndex, legId){
       var log = logs.find(function(l){ return l.id === logId; });
@@ -5359,11 +5335,11 @@
     });
     document.getElementById('btnDriveNormal').addEventListener('click', function(){
       var log = activeTripLog();
-      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV');
+      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV_OD');
     });
     document.getElementById('btnDriveHighway').addEventListener('click', function(){
       var log = activeTripLog();
-      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV_H');
+      if (log && log.mode !== 'drive') setTripMode('drive', 'DRV_LD');
     });
     document.getElementById('btnTripBreak').addEventListener('click', function(){
       var log = activeTripLog();
@@ -5376,19 +5352,17 @@
     document.getElementById('btnTripArrived').addEventListener('click', function(){ arriveAtLot(); });
     document.getElementById('btnTripPass').addEventListener('click', function(){ promptNextLegAndAdvance('passed'); });
     document.getElementById('btnTripLeaveLot').addEventListener('click', function(){ promptNextLegAndAdvance('arrived'); });
-    document.getElementById('btnLotRecord').addEventListener('click', function(){
-      var log = activeTripLog();
-      if (!log) return;
-      var leg = currentLeg(log);
-      if (!leg) return;
-      if (leg.lotMode === 'lot') setLegLotMode(null); else openTripPicker('lot');
-    });
-    document.getElementById('btnParkRecord').addEventListener('click', function(){
-      var log = activeTripLog();
-      if (!log) return;
-      var leg = currentLeg(log);
-      if (!leg) return;
-      if (leg.lotMode === 'park') setLegLotMode(null); else openTripPicker('park');
+    // 주차장/주차/펜스·가드레일·연석 기록 버튼 — 누르면 선택창 없이 고정 코드로 바로 시작, 다시 누르면 정지.
+    [['btnLotRecord', 'lot'], ['btnParkRecord', 'park'], ['btnFenceRecord', 'fence']].forEach(function(pair){
+      var btn = document.getElementById(pair[0]);
+      if (!btn) return;
+      btn.addEventListener('click', function(){
+        var log = activeTripLog();
+        if (!log) return;
+        var leg = currentLeg(log);
+        if (!leg) return;
+        setLegLotMode(leg.lotMode === pair[1] ? null : pair[1]);
+      });
     });
     document.getElementById('tripMemo').addEventListener('input', function(e){
       var log = activeTripLog();
